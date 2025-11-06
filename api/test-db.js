@@ -1,21 +1,15 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: 'postgresql://neondb_owner:npg_DRf8APrVB9Sn@ep-tiny-unit-a17d680w-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require', // PASTE DARI NEON
   ssl: { rejectUnauthorized: false }
 });
 
-module.exports = async function handler(req, res) {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    return res.json({
-      message: "Koneksi ke DB berhasil!",
-      data: result.rows,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Gagal koneksi ke DB",
-      error: error.message,
-    });
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Error:', err.message);
+  } else {
+    console.log('✅ Connected!', res.rows[0]);
   }
-};
+  pool.end();
+});
