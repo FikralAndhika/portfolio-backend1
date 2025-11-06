@@ -5,15 +5,15 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-module.exports = async (req, res) => {
+module.exports = async function handler(req, res) {
   try {
     const result = await pool.query("SELECT NOW()");
-    res.json({
+    return res.json({
       message: "Koneksi ke DB berhasil!",
       data: result.rows,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Gagal koneksi ke DB",
       error: error.message,
     });
