@@ -14,8 +14,23 @@ app.use(express.json({ limit: '10mb' }));
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false}});
+    // Root endpoint - TAMBAHKAN INI
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Portfolio Backend API',
+    status: 'running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      testDB: '/api/test-db',
+      projects: '/api/projects',
+      about: '/api/about',
+      skills: '/api/skills',
+      experiences: '/api/experiences',
+      certifications: '/api/certifications'
+    }
+  });
 });
 
 // Test connection
