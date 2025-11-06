@@ -34,24 +34,24 @@ app.get('/', (req, res) => {
     status: 'running',
     version: '1.0.0',
     endpoints: {
-      health: '/health',
-      testDB: '/test-db',
-      projects: '/projects',
-      about: '/about',
-      skills: '/skills',
-      experiences: '/experiences',
-      certifications: '/certifications'
+      health: '/api/health',
+      testDB: '/api/test-db',
+      projects: '/api/projects',
+      about: '/api/about',
+      skills: '/api/skills',
+      experiences: '/api/experiences',
+      certifications: '/api/certifications'
     }
   });
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running!' });
 });
 
 // Test DB
-app.get("/test-db", async (req, res) => {
+app.get("/api/test-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
     res.json({
@@ -67,7 +67,7 @@ app.get("/test-db", async (req, res) => {
 });
 
 // ==================== PROJECTS ====================
-app.get('/projects', async (req, res) => {
+app.get('/api/projects', async (req, res) => {
   try {
     const { category } = req.query;
     let query = 'SELECT * FROM projects ORDER BY created_at DESC';
@@ -86,7 +86,7 @@ app.get('/projects', async (req, res) => {
   }
 });
 
-app.get('/projects/:id', async (req, res) => {
+app.get('/api/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM projects WHERE id = $1', [id]);
@@ -102,7 +102,7 @@ app.get('/projects/:id', async (req, res) => {
   }
 });
 
-app.post('/projects', async (req, res) => {
+app.post('/api/projects', async (req, res) => {
   try {
     const { title, description, image, tags, github, demo, category } = req.body;
     
@@ -120,7 +120,7 @@ app.post('/projects', async (req, res) => {
   }
 });
 
-app.put('/projects/:id', async (req, res) => {
+app.put('/api/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, image, tags, github, demo, category } = req.body;
@@ -145,7 +145,7 @@ app.put('/projects/:id', async (req, res) => {
   }
 });
 
-app.delete('/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING *', [id]);
@@ -162,9 +162,9 @@ app.delete('/projects/:id', async (req, res) => {
 });
 
 // ==================== ABOUT ====================
-app.get('/about', async (req, res) => {
+app.get('/api/about', async (req, res) => {
   try {
-    console.log('📖 GET /about - Fetching about data');
+    console.log('📖 GET /api/about - Fetching about data');
     const result = await pool.query('SELECT * FROM about LIMIT 1');
     
     if (result.rows.length === 0) {
@@ -191,14 +191,14 @@ app.get('/about', async (req, res) => {
       stats: about.stats
     });
   } catch (err) {
-    console.error('❌ Error in GET /about:', err);
+    console.error('❌ Error in GET /api/about:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.put('/about', async (req, res) => {
+app.put('/api/about', async (req, res) => {
   try {
-    console.log('📝 PUT /about - Request received');
+    console.log('📝 PUT /api/about - Request received');
     const { profileImage, bio1, bio2, stats } = req.body;
     
     console.log('📦 Data received:', {
@@ -243,13 +243,13 @@ app.put('/about', async (req, res) => {
       stats: about.stats
     });
   } catch (err) {
-    console.error('❌ Error in PUT /about:', err);
+    console.error('❌ Error in PUT /api/about:', err);
     res.status(500).json({ error: 'Server error', message: err.message });
   }
 });
 
 // ==================== SKILLS ====================
-app.get('/skills', async (req, res) => {
+app.get('/api/skills', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM skills ORDER BY category, level DESC');
     
@@ -272,7 +272,7 @@ app.get('/skills', async (req, res) => {
   }
 });
 
-app.post('/skills', async (req, res) => {
+app.post('/api/skills', async (req, res) => {
   try {
     const { category, name, level } = req.body;
     
@@ -288,7 +288,7 @@ app.post('/skills', async (req, res) => {
   }
 });
 
-app.delete('/skills/:id', async (req, res) => {
+app.delete('/api/skills/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM skills WHERE id = $1', [id]);
@@ -300,7 +300,7 @@ app.delete('/skills/:id', async (req, res) => {
 });
 
 // ==================== EXPERIENCES ====================
-app.get('/experiences', async (req, res) => {
+app.get('/api/experiences', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM experiences ORDER BY created_at DESC');
     res.json(result.rows);
@@ -310,7 +310,7 @@ app.get('/experiences', async (req, res) => {
   }
 });
 
-app.post('/experiences', async (req, res) => {
+app.post('/api/experiences', async (req, res) => {
   try {
     const { year, position, company, description, achievements } = req.body;
     
@@ -328,7 +328,7 @@ app.post('/experiences', async (req, res) => {
   }
 });
 
-app.put('/experiences/:id', async (req, res) => {
+app.put('/api/experiences/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { year, position, company, description, achievements } = req.body;
@@ -349,7 +349,7 @@ app.put('/experiences/:id', async (req, res) => {
   }
 });
 
-app.delete('/experiences/:id', async (req, res) => {
+app.delete('/api/experiences/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM experiences WHERE id = $1', [id]);
@@ -361,7 +361,7 @@ app.delete('/experiences/:id', async (req, res) => {
 });
 
 // ==================== CERTIFICATIONS ====================
-app.get('/certifications', async (req, res) => {
+app.get('/api/certifications', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM certifications ORDER BY year DESC');
     res.json(result.rows);
@@ -371,7 +371,7 @@ app.get('/certifications', async (req, res) => {
   }
 });
 
-app.post('/certifications', async (req, res) => {
+app.post('/api/certifications', async (req, res) => {
   try {
     const { title, issuer, year, icon } = req.body;
     
@@ -387,7 +387,7 @@ app.post('/certifications', async (req, res) => {
   }
 });
 
-app.put('/certifications/:id', async (req, res) => {
+app.put('/api/certifications/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, issuer, year, icon } = req.body;
@@ -407,7 +407,7 @@ app.put('/certifications/:id', async (req, res) => {
   }
 });
 
-app.delete('/certifications/:id', async (req, res) => {
+app.delete('/api/certifications/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM certifications WHERE id = $1', [id]);
