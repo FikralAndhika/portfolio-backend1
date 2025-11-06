@@ -20,13 +20,13 @@ module.exports = async function handler(req, res) {
   try {
     // GET - Get all skills grouped by category
     if (req.method === 'GET') {
-      const result = await pool.query('SELECT * FROM skills ORDER BY category, level DESC');
+      const result = await pool.query('SELECT * FROM skills ORDER BY skill_category, level DESC');
       
       const grouped = result.rows.reduce((acc, skill) => {
-        if (!acc[skill.category]) {
-          acc[skill.category] = [];
+        if (!acc[skill.skill_category]) {
+          acc[skill.skill_category] = [];
         }
-        acc[skill.category].push({
+        acc[skill.skill_category].push({
           id: skill.id,
           name: skill.name,
           level: skill.level
@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
       const { category, name, level } = req.body;
       
       const result = await pool.query(
-        'INSERT INTO skills (category, name, level) VALUES ($1, $2, $3) RETURNING *',
+        'INSERT INTO skills (skill_category, name, level) VALUES ($1, $2, $3) RETURNING *',
         [category, name, level]
       );
       
