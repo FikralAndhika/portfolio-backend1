@@ -6,7 +6,7 @@ const pool = new Pool({
 });
 
 module.exports = async function handler(req, res) {
-  // CORS Headers - PENTING untuk fix error CORS!
+  // CORS Headers - INI YANG PENTING!
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,8 +18,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Ambil ID dari URL atau body
-    const id = req.query.id || req.body?.id;
+    // Ambil ID dari query parameter
+    const { id } = req.query;
 
     // GET ALL - Ambil semua experiences
     if (req.method === 'GET' && !id) {
