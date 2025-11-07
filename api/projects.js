@@ -6,71 +6,84 @@ const pool = new Pool({
 });
 
 module.exports = async function handler(req, res) {
-  // CORS Headers - sama seperti experiences
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
   try {
-    // Ambil ID dari query parameter
-    const { id } = req.query;
-
-    // GET - Get all skills grouped by category
+    // GET all projects or by category
     if (req.method === 'GET') {
-      const result = await pool.query('SELECT * FROM skills ORDER BY skill_category, level DESC');
-      
-      const grouped = result.rows.reduce((acc, skill) => {
-        if (!acc[skill.skill_category]) {
-          acc[skill.skill_category] = [];
-        }
-        acc[skill.skill_category].push({
-          id: skill.id,
-          name: skill.name,
-          level: skill.level
-        });
-        return acc;
-      }, {});
-      
-      return res.status(200).json(grouped);
+      const { category } = req.query;
+      let query = 'SELECT * FROM projects ORDER BY created_at DESC';
+      let values = [];
+
+      if (category && category !== 'all') {
+        query = 'SELECT * FROM projects WHERE category = $1 ORDER BY created_at DESC';
+        values = [category];
+      }
+
+      const result = await pool.query(query, values);
+      return res.status(200).json(result.rows);
     }
 
-    // POST - Create new skill
+    // POST - Create new project
     if (req.method === 'POST') {
-      const { category, name, level } = req.body;
+      const { title, description, image, tags, github, demo, category } = req.body;
       
       const result = await pool.query(
-        'INSERT INTO skills (skill_category, name, level) VALUES ($1, $2, $3) RETURNING *',
-        [category, name, level]
+        `INSERT INTO projects (title, description, image, tags, github, demo, category) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+         RETURNING *`,
+        [title, description, image, tags, github, demo, category]
       );
       
       return res.status(201).json(result.rows[0]);
     }
 
-    // DELETE - Delete skill
-    if (req.method === 'DELETE') {
-      if (!id) {
-        return res.status(400).json({ error: 'ID is required' });
-      }
-
-      const result = await pool.query('DELETE FROM skills WHERE id = $1 RETURNING *', [id]);
+    // PUT - Update project
+    if (req.method === 'PUT') {
+      const { id, title, description, image, tags, github, demo, category } = req.body;
+      
+      const result = await pool.query(
+        `UPDATE projects 
+         SET title = $1, description = $2, image = $3, tags = $4, 
+             github = $5, demo = $6, category = $7, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $8 
+         RETURNING *`,
+        [title, description, image, tags, github, demo, category, id]
+      );
       
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Skill not found' });
+        return res.status(404).json({ error: 'Project not found' });
       }
+      
+      return res.status(200).json(result.rows[0]);
+    }
 
-      return res.status(200).json({ message: 'Skill deleted successfully' });
+    // DELETE - Delete project
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      
+      const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING *', [id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      
+      return res.status(200).json({ message: 'Project deleted successfully' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error) {
-    console.error('❌ Error in /api/skills:', error);
+    console.error('Error:', error);
     return res.status(500).json({ error: 'Server error', message: error.message });
   }
 };
