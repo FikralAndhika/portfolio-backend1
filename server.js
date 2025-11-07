@@ -6,16 +6,28 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS Configuration - FIX CORS ISSUE
+// CORS middleware - MANUAL HEADERS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
+// CORS package sebagai backup
 app.use(cors({
   origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-
-// Handle preflight
-app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -240,13 +252,14 @@ app.put('/api/about', async (req, res) => {
 // ==================== SKILLS ====================
 app.get('/api/skills', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM skills ORDER BY category, level DESC');
+    const result = await pool.query('SELECT * FROM skills ORDER BY skill_category, level DESC');
     
     const grouped = result.rows.reduce((acc, skill) => {
-      if (!acc[skill.category]) {
-        acc[skill.category] = [];
+      const category = skill.skill_category;
+      if (!acc[category]) {
+        acc[category] = [];
       }
-      acc[skill.category].push({
+      acc[category].push({
         id: skill.id,
         name: skill.name,
         level: skill.level
@@ -263,11 +276,11 @@ app.get('/api/skills', async (req, res) => {
 
 app.post('/api/skills', async (req, res) => {
   try {
-    const { category, name, level } = req.body;
+    const { skill_category, name, level } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO skills (category, name, level) VALUES ($1, $2, $3) RETURNING *',
-      [category, name, level]
+      'INSERT INTO skills (skill_category, name, level) VALUES ($1, $2, $3) RETURNING *',
+      [skill_category, name, level]
     );
     
     res.status(201).json(result.rows[0]);
@@ -362,11 +375,11 @@ app.get('/api/certifications', async (req, res) => {
 
 app.post('/api/certifications', async (req, res) => {
   try {
-    const { title, issuer, year, icon } = req.body;
+    const { title, issuer, year, credential_id, credential_url } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO certifications (title, issuer, year, icon) VALUES ($1, $2, $3, $4) RETURNING *',
-      [title, issuer, year, icon]
+      'INSERT INTO certifications (title, issuer, year, credential_id, credential_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [title, issuer, year, credential_id, credential_url]
     );
     
     res.status(201).json(result.rows[0]);
@@ -379,14 +392,14 @@ app.post('/api/certifications', async (req, res) => {
 app.put('/api/certifications/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, issuer, year, icon } = req.body;
+    const { title, issuer, year, credential_id, credential_url } = req.body;
     
     const result = await pool.query(
       `UPDATE certifications 
-       SET title = $1, issuer = $2, year = $3, icon = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5 
+       SET title = $1, issuer = $2, year = $3, credential_id = $4, credential_url = $5, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $6 
        RETURNING *`,
-      [title, issuer, year, icon, id]
+      [title, issuer, year, credential_id, credential_url, id]
     );
     
     res.json(result.rows[0]);
