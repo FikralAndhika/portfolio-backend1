@@ -6,25 +6,39 @@ const pool = new Pool({
 });
 
 module.exports = async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  // CORS Headers - PENTING untuk fix error CORS!
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
+  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   try {
-    // GET - Get all experiences
-    if (req.method === 'GET') {
+    // Ambil ID dari URL atau body
+    const id = req.query.id || req.body?.id;
+
+    // GET ALL - Ambil semua experiences
+    if (req.method === 'GET' && !id) {
       const result = await pool.query('SELECT * FROM experiences ORDER BY created_at DESC');
       return res.status(200).json(result.rows);
     }
 
-    // POST - Create new experience
+    // GET BY ID - Ambil 1 experience
+    if (req.method === 'GET' && id) {
+      const result = await pool.query('SELECT * FROM experiences WHERE id = $1', [id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Experience not found' });
+      }
+      
+      return res.status(200).json(result.rows[0]);
+    }
+
+    // POST - Buat experience baru
     if (req.method === 'POST') {
       const { year, position, company, description, achievements } = req.body;
       
@@ -40,7 +54,11 @@ module.exports = async function handler(req, res) {
 
     // PUT - Update experience
     if (req.method === 'PUT') {
-      const { id, year, position, company, description, achievements } = req.body;
+      if (!id) {
+        return res.status(400).json({ error: 'ID is required' });
+      }
+
+      const { year, position, company, description, achievements } = req.body;
       
       const result = await pool.query(
         `UPDATE experiences 
@@ -58,18 +76,25 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(result.rows[0]);
     }
 
-    // DELETE - Delete experience
+    // DELETE - Hapus experience
     if (req.method === 'DELETE') {
-      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'ID is required' });
+      }
+
+      const result = await pool.query('DELETE FROM experiences WHERE id = $1 RETURNING *', [id]);
       
-      await pool.query('DELETE FROM experiences WHERE id = $1', [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Experience not found' });
+      }
+
       return res.status(200).json({ message: 'Experience deleted successfully' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Error in /api/experiences:', error);
     return res.status(500).json({ error: 'Server error', message: error.message });
   }
 };
