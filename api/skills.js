@@ -6,18 +6,21 @@ const pool = new Pool({
 });
 
 module.exports = async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  // CORS Headers - sama seperti experiences
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
+  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   try {
+    // Ambil ID dari query parameter
+    const { id } = req.query;
+
     // GET - Get all skills grouped by category
     if (req.method === 'GET') {
       const result = await pool.query('SELECT * FROM skills ORDER BY skill_category, level DESC');
@@ -51,16 +54,23 @@ module.exports = async function handler(req, res) {
 
     // DELETE - Delete skill
     if (req.method === 'DELETE') {
-      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'ID is required' });
+      }
+
+      const result = await pool.query('DELETE FROM skills WHERE id = $1 RETURNING *', [id]);
       
-      await pool.query('DELETE FROM skills WHERE id = $1', [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+
       return res.status(200).json({ message: 'Skill deleted successfully' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Error in /api/skills:', error);
     return res.status(500).json({ error: 'Server error', message: error.message });
   }
 };
