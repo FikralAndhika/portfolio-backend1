@@ -49,7 +49,13 @@ module.exports = async function handler(req, res) {
 
     // PUT - Update project
     if (req.method === 'PUT') {
-      const { id, title, description, image, tags, github, demo, category } = req.body;
+      // ✅ Support both: id from query OR body
+      const id = req.query.id || req.body.id;
+      const { title, description, image, tags, github, demo, category } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'Project ID is required' });
+      }
       
       const result = await pool.query(
         `UPDATE projects 
