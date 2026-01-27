@@ -35,13 +35,18 @@ module.exports = async function handler(req, res) {
 
     // POST - Create new project
     if (req.method === 'POST') {
-      const { title, description, image, tags, github, demo, category } = req.body;
+      const { title, description, images, tags, github, demo, category } = req.body;
+      
+      // Validasi images
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        return res.status(400).json({ error: 'Minimal 1 image harus ada' });
+      }
       
       const result = await pool.query(
-        `INSERT INTO projects (title, description, image, tags, github, demo, category) 
+        `INSERT INTO projects (title, description, images, tags, github, demo, category) 
          VALUES ($1, $2, $3, $4, $5, $6, $7) 
          RETURNING *`,
-        [title, description, image, tags, github, demo, category]
+        [title, description, images, tags || [], github || '', demo || '', category || 'it']
       );
       
       return res.status(201).json(result.rows[0]);
@@ -49,21 +54,33 @@ module.exports = async function handler(req, res) {
 
     // PUT - Update project
     if (req.method === 'PUT') {
-      // ✅ Support both: id from query OR body
       const id = req.query.id || req.body.id;
-      const { title, description, image, tags, github, demo, category } = req.body;
+      const { title, description, images, tags, github, demo, category } = req.body;
       
       if (!id) {
         return res.status(400).json({ error: 'Project ID is required' });
       }
+
+      // Validasi images jika di-update
+      if (images !== undefined) {
+        if (!Array.isArray(images) || images.length === 0) {
+          return res.status(400).json({ error: 'Minimal 1 image harus ada' });
+        }
+      }
       
       const result = await pool.query(
         `UPDATE projects 
-         SET title = $1, description = $2, image = $3, tags = $4, 
-             github = $5, demo = $6, category = $7, updated_at = CURRENT_TIMESTAMP
+         SET title = COALESCE($1, title), 
+             description = COALESCE($2, description), 
+             images = COALESCE($3, images), 
+             tags = COALESCE($4, tags),
+             github = COALESCE($5, github), 
+             demo = COALESCE($6, demo), 
+             category = COALESCE($7, category),
+             updated_at = CURRENT_TIMESTAMP
          WHERE id = $8 
          RETURNING *`,
-        [title, description, image, tags, github, demo, category, id]
+        [title, description, images, tags, github, demo, category, id]
       );
       
       if (result.rows.length === 0) {
@@ -76,6 +93,10 @@ module.exports = async function handler(req, res) {
     // DELETE - Delete project
     if (req.method === 'DELETE') {
       const { id } = req.query;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'Project ID is required' });
+      }
       
       const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING *', [id]);
       
